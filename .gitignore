@@ -66,6 +66,10 @@ env/
 *.jpeg
 *.pdf
 *.html
+*.pptx
+*.ppt
+*.docx
+*.doc
 
 # 로그
 *.log

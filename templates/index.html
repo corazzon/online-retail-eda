@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>상품 추천시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --secondary: #0EA5E9;
+            --accent: #F59E0B;
+            --success: #10B981;
+            --danger: #EF4444;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #1E293B;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .header-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-stat .value {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 4px;
+            padding: 0 32px;
+            overflow-x: auto;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn.active {
+            color: white;
+            border-bottom-color: var(--accent);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .main {
+            padding: 24px 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text);
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 20px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .product-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+            border-color: var(--primary-light);
+        }
+
+        .product-code {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .product-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        .product-sold {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .score-badge.high {
+            background: #DCFCE7;
+            color: #166534;
+        }
+
+        .score-badge.medium {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .score-badge.low {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .segment-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .segment-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .segment-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .segment-count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .segment-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .rfm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .rfm-item {
+            text-align: center;
+            padding: 14px;
+            border-radius: 10px;
+            background: var(--bg);
+        }
+
+        .rfm-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .rfm-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover td {
+            background: #F1F5F9;
+        }
+
+        .tab-header {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            font-family: inherit;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .rec-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .rec-type.cf {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .rec-type.ar {
+            background: #FCE7F3;
+            color: #9D174D;
+        }
+
+        .rec-type.pop {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .rec-type.cb {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .rec-type.rfm {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .strategy-card {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .strategy-title {
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .strategy-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .discount-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--border);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 16px 0;
+        }
+
+        .metric-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 16px;
+            border-radius: 10px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .metric-card .val {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .metric-card .lbl {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .heatmap-wrapper {
+            overflow-x: auto;
+        }
+
+        .heatmap {
+            border-collapse: collapse;
+            font-size: 12px;
+            width: 100%;
+        }
+
+        .heatmap th,
+        .heatmap td {
+            padding: 8px 10px;
+            text-align: center;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .heatmap th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .heatmap td.cohort-label {
+            font-weight: 600;
+            text-align: left;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .heatmap td.size-cell {
+            font-weight: 600;
+            background: #F1F5F9;
+            color: var(--text);
+        }
+
+        .ret-tab-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .ret-tab {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .ret-tab.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .ret-tab:hover:not(.active) {
+            border-color: var(--primary-light);
+            background: #EEF2FF;
+        }
+
+        .ret-panel {
+            display: none;
+        }
+
+        .ret-panel.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header-top {
+                padding: 12px 16px;
+            }
+
+            .header-stats {
+                display: none;
+            }
+
+            .nav {
+                padding: 0 16px;
+            }
+
+            .main {
+                padding: 16px;
+            }
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            #statsGrid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .metric-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo"><i class="fas fa-brain"></i><span>상품 추천시스템</span></div>
+            <div class="header-stats">
+                <div class="header-stat"><i class="fas fa-shopping-bag"></i><span class="value"
+                        id="hsTx">-</span><span>거래</span></div>
+                <div class="header-stat"><i class="fas fa-users"></i><span class="value"
+                        id="hsCust">-</span><span>고객</span></div>
+                <div class="header-stat"><i class="fas fa-box"></i><span class="value"
+                        id="hsProd">-</span><span>상품</span></div>
+            </div>
+        </div>
+        <div class="nav" id="mainNav">
+            <button class="nav-btn" data-page="dashboard"><i class="fas fa-chart-pie"></i> 대시보드</button>
+            <button class="nav-btn" data-page="product-rec"><i class="fas fa-box-open"></i> 상품 추천</button>
+            <button class="nav-btn" data-page="customer-rec"><i class="fas fa-user-tag"></i> 고객 맞춤 추천</button>
+            <button class="nav-btn" data-page="popular"><i class="fas fa-fire"></i> 인기 상품</button>
+            <button class="nav-btn" data-page="product-list"><i class="fas fa-list-ul"></i> 상품 목록</button>
+            <button class="nav-btn" data-page="segments"><i class="fas fa-layer-group"></i> 고객 세그먼트</button>
+            <button class="nav-btn" data-page="arpu"><i class="fas fa-chart-line"></i> ARPU 분석</button>
+            <button class="nav-btn" data-page="arppu"><i class="fas fa-coins"></i> ARPPU 분석</button>
+            <button class="nav-btn" data-page="retention"><i class="fas fa-undo"></i> 리텐션 분석</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+
+        <!-- ===================== DASHBOARD ===================== -->
+        <div class="page" id="page-dashboard">
+            <!-- 9 KPI Cards -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px;"
+                id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#EEF2FF; color:var(--primary);"><i
+                            class="fas fa-receipt"></i></div>
+                    <div class="stat-value" id="statTx">-</div>
+                    <div class="stat-label">총 거래 건수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#D1FAE5; color:var(--success);"><i
+                            class="fas fa-users"></i></div>
+                    <div class="stat-value" id="statCust">-</div>
+                    <div class="stat-label">총 고객 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#DBEAFE; color:var(--secondary);"><i
+                            class="fas fa-box"></i></div>
+                    <div class="stat-value" id="statProd">-</div>
+                    <div class="stat-label">총 상품 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#FEF3C7; color:var(--accent);"><i
+                            class="fas fa-pound-sign"></i></div>
+                    <div class="stat-value" id="statRevenue">-</div>
+                    <div class="stat-label">총 매출</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#FCE7F3; color:#DB2777;"><i class="fas fa-globe"></i></div>
+                    <div class="stat-value" id="statCountries">-</div>
+                    <div class="stat-label">국가 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#FEE2E2; color:var(--danger);"><i class="fas fa-link"></i>
+                    </div>
+                    <div class="stat-value" id="statRules">-</div>
+                    <div class="stat-label">연관 규칙 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#E0E7FF; color:#6366F1;"><i
+                            class="fas fa-project-diagram"></i></div>
+                    <div class="stat-value" id="statCF">-</div>
+                    <div class="stat-label">CF 추천 상품</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#CCFBF1; color:#0D9488;"><i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-value" id="statArpu">-</div>
+                    <div class="stat-label">평균 ARPU</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#FDF4FF; color:#A855F7;"><i
+                            class="fas fa-shopping-cart"></i></div>
+                    <div class="stat-value" id="statAov">-</div>
+                    <div class="stat-label">평균 객단가(AOV)</div>
+                </div>
+            </div>
+
+            <!-- Row 1: Sales + Country -->
+            <div class="grid-2" style="margin-bottom:20px;">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-line"></i> 월별 매출 추이</div>
+                    <div style="height:300px;"><canvas id="salesChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-globe-americas"></i> 국가별 매출 비중 (TOP 10)</div>
+                    <div style="height:300px;"><canvas id="countryChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Row 2: ARPU Trend + Retention Summary (NEW) -->
+            <div class="grid-2" style="margin-bottom:20px;">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-line" style="color:#0D9488;"></i> ARPU & AOV 추이</div>
+                    <div style="height:280px;"><canvas id="dashArpuChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-undo" style="color:#EF4444;"></i> 코호트 리텐션 요약</div>
+                    <div id="dashRetentionSummary" style="margin-bottom:12px; display:flex; gap:12px; flex-wrap:wrap;">
+                    </div>
+                    <div style="height:220px;"><canvas id="dashRetentionChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Row 3: Algo + Segment -->
+            <div class="grid-2" style="margin-bottom:20px;">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-cogs"></i> 추천 알고리즘</div>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div
+                            style="display:flex; align-items:start; gap:12px; padding:12px; background:var(--bg); border-radius:10px;">
+                            <span class="rec-type cf">CF</span>
+                            <div><strong>협업 필터링</strong>
+                                <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">아이템 기반 코사인 유사도로
+                                    유사 상품을 추천합니다.</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex; align-items:start; gap:12px; padding:12px; background:var(--bg); border-radius:10px;">
+                            <span class="rec-type ar">AR</span>
+                            <div><strong>연관 규칙 분석</strong>
+                                <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">Apriori 알고리즘으로
+                                    함께 구매되는 상품 패턴을 분석합니다.</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex; align-items:start; gap:12px; padding:12px; background:var(--bg); border-radius:10px;">
+                            <span class="rec-type pop">POP</span>
+                            <div><strong>인기도 기반</strong>
+                                <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">최근 90일 판매량, 주문수,
+                                    고객수 기반 인기 상품을 추천합니다.</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex; align-items:start; gap:12px; padding:12px; background:var(--bg); border-radius:10px;">
+                            <span class="rec-type cb">CB</span>
+                            <div><strong>콘텐츠 기반</strong>
+                                <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">상품 설명을 텍스트 분석하여
+                                    유사한 상품을 추천합니다.</p>
+                            </div>
+                        </div>
+                        <div
+                            style="display:flex; align-items:start; gap:12px; padding:12px; background:var(--bg); border-radius:10px;">
+                            <span class="rec-type rfm">RFM</span>
+                            <div><strong>RFM 개인화</strong>
+                                <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">고객 세그먼트별 맞춤 추천
+                                    전략을 적용합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-bar"></i> 고객 세그먼트 분포</div>
+                    <div class="chart-container" style="height:280px;"><canvas id="segmentBarChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Data Info -->
+            <div class="card">
+                <div class="card-title"><i class="fas fa-info-circle"></i> 데이터 정보</div>
+                <div id="dataInfo" style="display:flex; gap:24px; flex-wrap:wrap;">
+                    <div><strong>기간:</strong> <span id="infoDate">-</span></div>
+                    <div><strong>국가 수:</strong> <span id="infoCountryTxt">-</span></div>
+                    <div><strong>연관 규칙:</strong> <span id="infoRules">-</span>개</div>
+                    <div><strong>CF 상품:</strong> <span id="infoCF">-</span>개</div>
+                    <div><strong>CB 상품:</strong> <span id="infoCB">-</span>개</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== PRODUCT REC ===================== -->
+        <div class="page" id="page-product-rec">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-search"></i> 상품 검색</div>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="productSearch"
+                        placeholder="상품명 또는 코드를 입력하세요 (예: CHRISTMAS, 85048)"
+                        onkeydown="if(event.key==='Enter') searchProducts()">
+                    <button class="btn btn-primary" onclick="searchProducts()"><i class="fas fa-search"></i> 검색</button>
+                </div>
+                <div id="productResults"></div>
+            </div>
+            <div id="productRecSection" style="display:none;">
+                <div class="card" id="selectedProductInfo"></div>
+                <div class="grid-3">
+                    <div class="card">
+                        <div class="card-title"><span class="rec-type cf">CF</span> 협업 필터링 추천</div>
+                        <div id="cfPrinciple"
+                            style="font-size:12px; color:var(--primary); background:var(--bg); padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid var(--primary); display:none;">
+                        </div>
+                        <div id="cfRecommendations"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><span class="rec-type ar">AR</span> 연관 규칙 추천</div>
+                        <div id="arPrinciple"
+                            style="font-size:12px; color:var(--primary); background:var(--bg); padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid var(--primary); display:none;">
+                        </div>
+                        <div id="arRecommendations"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><span class="rec-type cb">CB</span> 콘텐츠 기반 추천</div>
+                        <div id="cbPrinciple"
+                            style="font-size:12px; color:var(--primary); background:var(--bg); padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid var(--primary); display:none;">
+                        </div>
+                        <div id="cbRecommendations"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== CUSTOMER REC ===================== -->
+        <div class="page" id="page-customer-rec">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-user-search"></i> 고객 검색</div>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="customerSearch"
+                        placeholder="고객 ID를 입력하세요 (예: 17850, 13047)"
+                        onkeydown="if(event.key==='Enter') searchCustomers()">
+                    <button class="btn btn-primary" onclick="searchCustomers()"><i class="fas fa-search"></i>
+                        검색</button>
+                </div>
+                <div id="customerResults"></div>
+            </div>
+            <div id="customerRecSection" style="display:none;"></div>
+        </div>
+
+        <!-- ===================== POPULAR ===================== -->
+        <div class="page" id="page-popular">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-fire" style="color:var(--danger);"></i> 인기 상품</div>
+            </div>
+            <div class="tab-header" id="popularSortTabs">
+                <button class="tab-btn active" onclick="loadPopular('popularity')">종합 인기</button>
+                <button class="tab-btn" onclick="loadPopular('sales')">판매량</button>
+                <button class="tab-btn" onclick="loadPopular('customers')">구매 고객</button>
+                <button class="tab-btn" onclick="loadPopular('revenue')">매출액</button>
+            </div>
+            <div class="grid-4" id="popularGrid"></div>
+        </div>
+
+        <!-- ===================== PRODUCT LIST ===================== -->
+        <div class="page" id="page-product-list">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-list-ul"></i> 전체 상품 목록 (<span id="totalProductCount">-</span>개)
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="productListSearch" placeholder="상품명 검색..."
+                        onkeydown="if(event.key==='Enter') loadAllProducts(1)">
+                    <button class="btn btn-primary" onclick="loadAllProducts(1)"><i class="fas fa-search"></i>
+                        검색</button>
+                </div>
+                <div id="productListTable"></div>
+                <div id="productListPagination" style="display:flex; gap:8px; justify-content:center; margin-top:16px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== SEGMENTS ===================== -->
+        <div class="page" id="page-segments">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-layer-group" style="color:var(--primary);"></i> RFM 고객 세그먼트
+                </div>
+            </div>
+            <div class="grid-3" id="segmentGrid" style="margin-bottom:24px;"></div>
+            <div id="segmentDetail" style="display:none;"></div>
+        </div>
+
+        <!-- ===================== ARPU ===================== -->
+        <div class="page" id="page-arpu">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-chart-line" style="color:var(--primary);"></i> ARPU 분석
+                    (Average Revenue Per User)</div>
+            </div>
+            <div class="metric-row" id="arpu-metrics"></div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-line"></i> 월별 ARPU & AOV 추이</div>
+                <div class="chart-container"><canvas id="arpu-chart"></canvas></div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-won-sign"></i> 월별 매출 추이</div>
+                    <div class="chart-container"><canvas id="revenue-chart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-users"></i> 월별 고객 수 & 주문 수</div>
+                    <div class="chart-container"><canvas id="customers-chart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== ARPPU ===================== -->
+        <div class="page" id="page-arppu">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-coins" style="color:var(--accent);"></i> ARPPU 분석 (Average
+                    Revenue Per Paying User)</div>
+            </div>
+
+            <div class="card" style="background:var(--bg); border-left:4px solid var(--primary); margin-bottom:20px;">
+                <div style="display:flex; align-items:start; gap:12px; padding:4px;">
+                    <i class="fas fa-info-circle" style="color:var(--primary); margin-top:4px;"></i>
+                    <div>
+                        <strong style="font-size:15px;">이 페이지는?</strong>
+                        <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+                            ARPPU(Average Revenue Per Paying User)는 해당 월에 실제로 결제한 고객만을 대상으로 한 1인당 평균 매출입니다.
+                            ARPU와 비교하면 결제 고객의 구매력과 결제 전환율을 함께 파악할 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-row" id="arppu-metrics"></div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-area"></i> ARPPU vs ARPU 추이</div>
+                <div class="chart-container"><canvas id="arpu-arppu-chart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-percentage"></i> 결제율(Paying Rate) 추이</div>
+                <div class="chart-container"><canvas id="paying-rate-chart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-table"></i> 월별 상세 데이터</div>
+                <div class="table-wrapper">
+                    <table id="arppu-table">
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>ARPU</th>
+                                <th>ARPPU</th>
+                                <th>AOV</th>
+                                <th>결제율</th>
+                                <th>매출</th>
+                                <th>고객 수</th>
+                                <th>주문 수</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== RETENTION (2-TYPE) ===================== -->
+        <div class="page" id="page-retention">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-undo" style="color:var(--primary);"></i> 코호트 리텐션 분석</div>
+            </div>
+
+            <!-- Type Toggle -->
+            <div class="ret-tab-group">
+                <button class="ret-tab active" onclick="switchRetTab('customer')"><i class="fas fa-users"></i> 고객 수
+                    기반</button>
+                <button class="ret-tab" onclick="switchRetTab('revenue')"><i class="fas fa-coins"></i> 매출액 기반</button>
+            </div>
+
+            <!-- Customer-Based Panel -->
+            <div class="ret-panel active" id="ret-panel-customer">
+                <div class="metric-row" id="ret-cust-metrics"></div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-th"></i> 고객 수 리텐션 히트맵 (%)</div>
+                    <div class="heatmap-wrapper" id="ret-cust-heatmap"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-chart-area"></i> 평균 리텐션 곡선 (고객 수)</div>
+                        <div class="chart-container"><canvas id="ret-cust-curve"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-percentage"></i> M+1 리텐션 추이 (고객 수)</div>
+                        <div class="chart-container"><canvas id="ret-cust-m1"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue-Based Panel -->
+            <div class="ret-panel" id="ret-panel-revenue">
+                <div class="metric-row" id="ret-rev-metrics"></div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-th"></i> 매출액 리텐션 히트맵 (%)</div>
+                    <div class="heatmap-wrapper" id="ret-rev-heatmap"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-chart-area"></i> 평균 리텐션 곡선 (매출액)</div>
+                        <div class="chart-container"><canvas id="ret-rev-curve"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-percentage"></i> M+1 리텐션 추이 (매출액)</div>
+                        <div class="chart-container"><canvas id="ret-rev-m1"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = '';
+        const PAGES = ['dashboard', 'product-rec', 'customer-rec', 'popular', 'product-list', 'segments', 'arpu', 'arppu', 'retention'];
+        let currentPage = 'dashboard';
+        let chartInstances = {};
+        let retentionData = null;
+
+        /* ========== ROUTING ========== */
+        function showPage(pageName) {
+            if (!PAGES.includes(pageName)) pageName = 'dashboard';
+            currentPage = pageName;
+            history.replaceState(null, '', '#' + pageName);
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('page-' + pageName);
+            if (target) target.classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.page === pageName);
+            });
+            if (pageName === 'popular') loadPopular();
+            if (pageName === 'segments') loadSegments();
+            if (pageName === 'product-list') loadAllProducts();
+            if (pageName === 'arpu') loadArpu();
+            if (pageName === 'arppu') loadArppu();
+            if (pageName === 'retention') loadRetention();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => showPage(btn.dataset.page));
+            });
+            loadStats();
+            const hash = window.location.hash.replace('#', '') || 'dashboard';
+            showPage(hash);
+        });
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '') || 'dashboard';
+            if (hash !== currentPage) showPage(hash);
+        });
+
+        /* ========== HELPERS ========== */
+        function fmtNum(n) { return Number(n).toLocaleString(); }
+        function fmtPrice(n) { return '\u00a3' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+        function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+        function escHtml(s) { return s ? s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
+        function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+        function metricCard(val, lbl, color) { return '<div class="metric-card"><div class="val" style="color:' + color + ';">' + val + '</div><div class="lbl">' + lbl + '</div></div>'; }
+
+        function chartOpts(prefix) {
+            return {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Noto Sans KR', size: 12 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                let v = ctx.parsed.y != null ? ctx.parsed.y : ctx.parsed.x;
+                                if (prefix === '\u00a3') return ctx.dataset.label + ': \u00a3' + v.toLocaleString();
+                                if (prefix === '%') return ctx.dataset.label + ': ' + v.toFixed(1) + '%';
+                                return ctx.dataset.label + ': ' + v.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { font: { family: 'Noto Sans KR', size: 10 }, maxRotation: 45 }, grid: { display: false } },
+                    y: {
+                        ticks: {
+                            font: { family: 'Noto Sans KR', size: 11 }, callback: function (v) {
+                                if (prefix === '\u00a3') return '\u00a3' + v.toLocaleString();
+                                if (prefix === '%') return v + '%';
+                                return v.toLocaleString();
+                            }
+                        }, grid: { color: '#E2E8F020' }
+                    }
+                }
+            };
+        }
+
+        function getHeatColor(val) {
+            if (val >= 80) return '#312E81';
+            if (val >= 50) return '#4F46E5';
+            if (val >= 30) return '#6366F1';
+            if (val >= 25) return '#818CF8';
+            if (val >= 20) return '#A5B4FC';
+            if (val >= 15) return '#C7D2FE';
+            if (val >= 10) return '#DDD6FE';
+            if (val > 0) return '#E0E7FF';
+            return '#F8FAFC';
+        }
+
+        /* ========== LOAD STATS (Dashboard) ========== */
+        async function loadStats() {
+            try {
+                const res = await fetch(API + '/api/stats');
+                const data = await res.json();
+
+                setText('hsTx', fmtNum(data.total_transactions));
+                setText('hsCust', fmtNum(data.total_customers));
+                setText('hsProd', fmtNum(data.total_products));
+
+                setText('statTx', fmtNum(data.total_transactions));
+                setText('statCust', fmtNum(data.total_customers));
+                setText('statProd', fmtNum(data.total_products));
+                setText('statRevenue', '\u00a3' + fmtNum(Math.round(data.total_revenue)));
+                setText('statCountries', fmtNum(data.total_countries));
+                setText('statRules', fmtNum(data.association_rules_count));
+                setText('statCF', fmtNum(data.cf_products_count));
+
+                setText('infoDate', data.date_range);
+                setText('infoCountryTxt', data.total_countries);
+                setText('infoRules', fmtNum(data.association_rules_count));
+                setText('infoCF', fmtNum(data.cf_products_count));
+                setText('infoCB', fmtNum(data.cb_products_count));
+
+                if (data.monthly_sales) renderSalesChart(data.monthly_sales);
+                if (data.top_countries) renderCountryChart(data.top_countries);
+                if (data.rfm_segments) renderSegmentBarChart(data.rfm_segments);
+
+                // Load ARPU & Retention for dashboard
+                loadDashboardArpu();
+                loadDashboardRetention();
+            } catch (e) { console.error("Stats load error:", e); }
+        }
+
+        /* === Dashboard: ARPU mini chart === */
+        async function loadDashboardArpu() {
+            try {
+                const res = await fetch(API + '/api/arpu');
+                const a = await res.json();
+                if (!a.arpu || a.arpu.length === 0) return;
+
+                const avgArpu = Math.round(a.arpu.reduce((s, v) => s + v, 0) / a.arpu.length);
+                const avgAov = Math.round(a.aov.reduce((s, v) => s + v, 0) / a.aov.length);
+                setText('statArpu', '\u00a3' + fmtNum(avgArpu));
+                setText('statAov', '\u00a3' + fmtNum(avgAov));
+
+                destroyChart('dashArpuChart');
+                chartInstances['dashArpuChart'] = new Chart(document.getElementById('dashArpuChart'), {
+                    type: 'line',
+                    data: {
+                        labels: a.months.map(function (m) { return m.slice(2); }), datasets: [
+                            { label: 'ARPU (\u00a3)', data: a.arpu, borderColor: '#4F46E5', backgroundColor: '#4F46E540', tension: 0.3, fill: true },
+                            { label: 'AOV (\u00a3)', data: a.aov, borderColor: '#0EA5E9', backgroundColor: '#0EA5E940', tension: 0.3, fill: true }
+                        ]
+                    },
+                    options: chartOpts('\u00a3')
+                });
+            } catch (e) { console.error("Dashboard ARPU error:", e); }
+        }
+
+        /* === Dashboard: Retention summary === */
+        async function loadDashboardRetention() {
+            try {
+                const res = await fetch(API + '/api/retention');
+                const data = await res.json();
+                const cust = data.customer;
+                if (!cust) return;
+
+                const cohorts = Object.keys(cust).sort();
+                if (cohorts.length === 0) return;
+
+                // Summary metrics
+                const m1rates = cohorts.map(function (c) { return cust[c].retention[1] || 0; }).filter(function (v) { return v > 0; });
+                const avgM1 = m1rates.length > 0 ? (m1rates.reduce(function (s, v) { return s + v; }, 0) / m1rates.length).toFixed(1) : '-';
+                const sizes = cohorts.map(function (c) { return cust[c].cohort_size; });
+                const avgSize = Math.round(sizes.reduce(function (s, v) { return s + v; }, 0) / sizes.length);
+
+                var summaryEl = document.getElementById('dashRetentionSummary');
+                summaryEl.innerHTML =
+                    '<div style="text-align:center; padding:10px 16px; background:var(--bg); border-radius:10px; flex:1;"><div style="font-size:22px; font-weight:700; color:var(--primary);">' + avgM1 + '%</div><div style="font-size:11px; color:var(--text-secondary);">평균 M+1 리텐션</div></div>' +
+                    '<div style="text-align:center; padding:10px 16px; background:var(--bg); border-radius:10px; flex:1;"><div style="font-size:22px; font-weight:700; color:#0EA5E9;">' + fmtNum(avgSize) + '</div><div style="font-size:11px; color:var(--text-secondary);">평균 코호트 크기</div></div>' +
+                    '<div style="text-align:center; padding:10px 16px; background:var(--bg); border-radius:10px; flex:1;"><div style="font-size:22px; font-weight:700; color:#10B981;">' + cohorts.length + '</div><div style="font-size:11px; color:var(--text-secondary);">분석 코호트 수</div></div>';
+
+                // M+1 retention trend mini chart
+                var m1data = cohorts.map(function (c) { return cust[c].retention[1] || 0; });
+                destroyChart('dashRetentionChart');
+                chartInstances['dashRetentionChart'] = new Chart(document.getElementById('dashRetentionChart'), {
+                    type: 'line',
+                    data: {
+                        labels: cohorts.map(function (c) { return c.slice(2); }), datasets: [
+                            { label: 'M+1 리텐션 (%)', data: m1data, borderColor: '#10B981', backgroundColor: '#10B98130', tension: 0.3, fill: true, pointBackgroundColor: '#10B981', pointRadius: 4 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { callback: function (v) { return v + '%'; }, font: { size: 10 } }, grid: { color: '#E2E8F020' }, max: 40 } } }
+                });
+            } catch (e) { console.error("Dashboard Retention error:", e); }
+        }
+
+        function renderSalesChart(data) {
+            destroyChart('salesChart');
+            chartInstances['salesChart'] = new Chart(document.getElementById('salesChart'), {
+                type: 'bar',
+                data: { labels: Object.keys(data), datasets: [{ label: '\uc6d4\ubcc4 \ub9e4\ucd9c\uc561 (\u00a3)', data: Object.values(data), backgroundColor: 'rgba(79,70,229,0.6)', borderColor: '#4F46E5', borderWidth: 1, borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function renderCountryChart(data) {
+            destroyChart('countryChart');
+            chartInstances['countryChart'] = new Chart(document.getElementById('countryChart'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#818CF8', '#34D399', '#FBBF24', '#F87171', '#38BDF8'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        }
+
+        function renderSegmentBarChart(data) {
+            var labels = Object.keys(data);
+            var counts = Object.values(data);
+            var colors = ['#4F46E5', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+            var total = counts.reduce(function (a, b) { return a + b; }, 0);
+            destroyChart('segmentBarChart');
+            chartInstances['segmentBarChart'] = new Chart(document.getElementById('segmentBarChart'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: '\uace0\uac1d \uc218', data: counts, backgroundColor: colors.slice(0, labels.length), borderWidth: 1, borderRadius: 6, barPercentage: 0.7 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (ctx) { return ctx.parsed.x.toLocaleString() + '\uba85 (' + (ctx.parsed.x / total * 100).toFixed(1) + '%)'; } } } },
+                    scales: { x: { grid: { color: '#E2E8F020' }, ticks: { font: { family: 'Noto Sans KR', size: 11 } } }, y: { grid: { display: false }, ticks: { font: { family: 'Noto Sans KR', size: 12, weight: '600' } } } }
+                }
+            });
+        }
+
+        /* ========== PRODUCT SEARCH & REC ========== */
+        async function searchProducts() {
+            var query = document.getElementById('productSearch').value.trim();
+            if (!query || query.length < 2) return;
+            var container = document.getElementById('productResults');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>\uac80\uc0c9 \uc911...</div>';
+            try {
+                var res = await fetch(API + '/api/search/products?q=' + encodeURIComponent(query));
+                var data = await res.json();
+                if (data.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>\uac80\uc0c9 \uacb0\uacfc\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</p></div>'; return; }
+                var html = '<div class="table-wrapper"><table><thead><tr><th>\ucf54\ub4dc</th><th>\uc0c1\ud488\uba85</th><th>\ud3c9\uade0\uac00</th><th>\ud310\ub9e4\uc218\ub7c9</th><th>\uace0\uac1d\uc218</th><th></th></tr></thead><tbody>';
+                data.forEach(function (p) { html += '<tr><td><span style="color:var(--primary);font-weight:600;">' + p.StockCode + '</span></td><td>' + escHtml(p.Description) + '</td><td>' + fmtPrice(p.AvgPrice) + '</td><td>' + fmtNum(p.TotalSold) + '</td><td>' + fmtNum(p.UniqueCustomers) + '</td><td><button class="btn btn-primary btn-sm" onclick="getProductRec(\'' + p.StockCode + '\')"><i class="fas fa-magic"></i> \ucd94\ucc9c</button></td></tr>'; });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>\uac80\uc0c9 \uc911 \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4.</p></div>'; }
+        }
+
+        async function getProductRec(stockCode) {
+            var section = document.getElementById('productRecSection');
+            section.style.display = 'block';
+            document.getElementById('selectedProductInfo').innerHTML = '<div class="loading"><div class="spinner"></div>\ucd94\ucc9c \uc0dd\uc131 \uc911...</div>';
+            ['cfRecommendations', 'arRecommendations', 'cbRecommendations'].forEach(function (id) { document.getElementById(id).innerHTML = '<div class="loading"><div class="spinner"></div></div>'; });
+            section.scrollIntoView({ behavior: 'smooth' });
+            try {
+                var res = await fetch(API + '/api/recommend/product/' + stockCode);
+                var data = await res.json();
+                var info = data.product || {};
+                var pr = data.principles || {};
+                document.getElementById('selectedProductInfo').innerHTML = '<div class="card-title"><i class="fas fa-box"></i> ' + escHtml(info.Description || stockCode) + '</div><div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14px;"><div>\ucf54\ub4dc: <strong>' + stockCode + '</strong></div><div>\ud3c9\uade0\uac00: <strong>' + fmtPrice(info.AvgPrice || 0) + '</strong></div><div>\ud310\ub9e4\ub7c9: <strong>' + fmtNum(info.TotalSold || 0) + '</strong></div><div>\uace0\uac1d\uc218: <strong>' + fmtNum(info.UniqueCustomers || 0) + '</strong></div></div>';
+                renderRecList('cfRecommendations', 'cfPrinciple', data.collaborative_filtering, pr.cf);
+                renderRecList('arRecommendations', 'arPrinciple', data.association_rules, pr.ar);
+                renderRecList('cbRecommendations', 'cbPrinciple', data.content_based, pr.cb);
+            } catch (e) { document.getElementById('selectedProductInfo').innerHTML = '<div class="empty-state"><p>\ucd94\ucc9c \uc0dd\uc131 \uc2e4\ud328</p></div>'; }
+        }
+
+        function renderRecList(containerId, principleId, items, principle) {
+            var container = document.getElementById(containerId);
+            var principleEl = document.getElementById(principleId);
+            if (principle) { principleEl.textContent = principle; principleEl.style.display = 'block'; } else { principleEl.style.display = 'none'; }
+            if (!items || items.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>\ucd94\ucc9c \uacb0\uacfc \uc5c6\uc74c</p></div>'; return; }
+            var html = '';
+            items.forEach(function (item) {
+                // Similarity 점수 추출 (대소문자 및 다양한 키 대응)
+                var score = item.Similarity || item.similarity || item.score || item.confidence || 0;
+                var scoreClass = score >= 0.5 ? 'high' : score >= 0.3 ? 'medium' : 'low';
+                var scorePercent = (score * 100).toFixed(1) + '%';
+
+                html += '<div class="product-card" onclick="getProductRec(\'' + item.StockCode + '\')">' +
+                    '<div class="product-code">' + item.StockCode + '</div>' +
+                    '<div class="product-name">' + escHtml(item.Description) + '</div>' +
+                    '<div class="product-meta">' +
+                    '<span class="score-badge ' + scoreClass + '">' + scorePercent + '</span>' +
+                    '<span style="font-size:11px; color:var(--text-secondary); margin-left:4px;">\uc720\uc0ac\ub3c4</span>' +
+                    '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        /* ========== CUSTOMER SEARCH & REC ========== */
+        async function searchCustomers() {
+            var query = document.getElementById('customerSearch').value.trim();
+            if (!query) return;
+            var container = document.getElementById('customerResults');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>\uac80\uc0c9 \uc911...</div>';
+            try {
+                var res = await fetch(API + '/api/search/customers?q=' + encodeURIComponent(query));
+                var data = await res.json();
+                if (data.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-user-slash"></i><p>\uace0\uac1d\uc744 \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.</p></div>'; return; }
+                var html = '<div class="table-wrapper"><table><thead><tr><th>ID</th><th>\uc138\uadf8\uba3c\ud2b8</th><th>\uad6c\ub9e4 \ud69f\uc218</th><th>\ucd1d \uc9c0\ucd9c</th><th>\ucd5c\uadfc \uad6c\ub9e4\uc77c</th><th></th></tr></thead><tbody>';
+                data.forEach(function (c) {
+                    var cid = c.customer_id || c['Customer ID'] || 'N/A';
+                    var seg = c.segment || c['Segment'] || 'N/A';
+                    var freq = c.frequency || c['Frequency'] || 0;
+                    var mon = c.monetary || c['Monetary'] || 0;
+                    var last = c.last_purchase || c['Recent Purchase'] || 'N/A';
+                    html += '<tr><td><strong>' + cid + '</strong></td><td>' + seg + '</td><td>' + fmtNum(freq) + '</td><td>' + fmtPrice(mon) + '</td><td>' + last + '</td><td><button class="btn btn-primary btn-sm" onclick="getCustomerRec(\'' + cid + '\')"><i class="fas fa-magic"></i> \ucd94\ucc9c</button></td></tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = '<div class="empty-state"><p>\uac80\uc0c9 \uc2e4\ud328</p></div>'; }
+        }
+
+        async function getCustomerRec(customerId) {
+            var section = document.getElementById('customerRecSection');
+            if (!section) return;
+            section.style.display = 'block';
+            section.innerHTML = '<div class="loading"><div class="spinner"></div>\ubd84\uc11d \uc911...</div>';
+            section.scrollIntoView({ behavior: 'smooth' });
+            try {
+                var res = await fetch(API + '/api/recommend/customer/' + encodeURIComponent(customerId));
+                var data = await res.json();
+                var html = '<div class="card"><div class="card-title"><i class="fas fa-user"></i> \uace0\uac1d #' + customerId + ' \ub9de\ucda4 \ucd94\ucc9c</div>';
+
+                if (data.rfm) {
+                    var s = data.rfm;
+                    html += '<div class="strategy-card"><div class="strategy-title"><i class="fas fa-layer-group"></i> ' + (s.Segment || 'N/A') + ' \uc138\uadf8\uba3c\ud2b8</div>';
+                    if (s.Strategy) html += '<div class="strategy-desc">' + s.Strategy.description + '</div><div class="discount-badge"><i class="fas fa-tag"></i> ' + s.Strategy.discount + '</div>';
+                    html += '</div><div class="rfm-grid"><div class="rfm-item"><div class="rfm-value" style="color:#EF4444;">' + (s.Recency || 0) + '</div><div class="rfm-label">Recency (\uc77c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#3B82F6;">' + (s.Frequency || 0) + '</div><div class="rfm-label">Frequency (\ud68c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#10B981;">' + fmtPrice(s.Monetary || 0) + '</div><div class="rfm-label">Monetary</div></div></div>';
+                }
+
+                if (data.recommendations && data.recommendations.length > 0) {
+                    html += '<div style="margin-top:16px;"><strong>\ucd94\ucc9c \uc0c1\ud488</strong></div><div class="grid-4" style="margin-top:12px;">';
+                    data.recommendations.forEach(function (r) {
+                        var rawScore = r.Score || r.score || r.final_score || r.similarity || r.Similarity || 0;
+                        var score = rawScore > 1 ? rawScore : rawScore * 100;
+                        var scoreClass = score >= 50 ? 'high' : score >= 30 ? 'medium' : 'low';
+                        var scorePercent = score.toFixed(1) + '%';
+                        html += '<div class="product-card" onclick="getProductRec(\'' + r.StockCode + '\')">' +
+                            '<div class="product-code">' + r.StockCode + '</div>' +
+                            '<div class="product-name">' + escHtml(r.Description) + '</div>' +
+                            '<div class="product-meta">' +
+                            '<span class="score-badge ' + scoreClass + '">\uc720\uc0ac\ub3c4 ' + scorePercent + '</span>' +
+                            '<span class="product-sold">' + fmtPrice(r.AvgPrice || 0) + '</span>' +
+                            '</div></div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+                section.innerHTML = html;
+            } catch (e) {
+                console.error("Customer Rec Error:", e);
+                section.innerHTML = '<div class="empty-state"><p>\ubd84\uc11d \uc2e4\ud328</p></div>';
+            }
+        }
+
+        /* ========== POPULAR PRODUCTS ========== */
+        async function loadPopular(sort) {
+            sort = sort || 'popularity';
+            document.querySelectorAll('#popularSortTabs .tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            var tabs = document.querySelectorAll('#popularSortTabs .tab-btn');
+            var idx = sort === 'sales' ? 1 : sort === 'customers' ? 2 : sort === 'revenue' ? 3 : 0;
+            if (tabs[idx]) tabs[idx].classList.add('active');
+            var container = document.getElementById('popularGrid');
+            container.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>\ub85c\ub529 \uc911...</div>';
+            try {
+                var res = await fetch(API + '/api/popular?sort=' + sort + '&n=20');
+                var data = await res.json();
+                if (data.length === 0) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>\ub370\uc774\ud130 \uc5c6\uc74c</p></div>'; return; }
+                var html = '';
+                data.forEach(function (p, i) {
+                    html += '<div class="product-card" onclick="showPage(\'product-rec\'); setTimeout(function(){document.getElementById(\'productSearch\').value=\'' + p.StockCode + '\'; searchProducts();}, 300);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span class="product-code">' + p.StockCode + '</span><span style="font-size:12px;color:var(--accent);font-weight:700;">#' + (i + 1) + '</span></div><div class="product-name">' + escHtml(p.Description) + '</div><div class="product-meta"><span class="product-price">' + fmtPrice(p.AvgPrice) + '</span><span class="product-sold">' + fmtNum(p.TotalSold) + '\uac1c \ud310\ub9e4</span></div></div>';
+                });
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>\ub85c\ub529 \uc2e4\ud328</p></div>'; }
+        }
+
+        /* ========== ALL PRODUCTS ========== */
+        var currentProductPage = 1;
+        async function loadAllProducts(page) {
+            page = page || 1;
+            currentProductPage = page;
+            var query = document.getElementById('productListSearch').value.trim();
+            var container = document.getElementById('productListTable');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>\ub85c\ub529 \uc911...</div>';
+            try {
+                var url = API + '/api/products?page=' + page + '&size=20';
+                if (query) url += '&q=' + encodeURIComponent(query);
+                var res = await fetch(url);
+                var data = await res.json();
+                setText('totalProductCount', fmtNum(data.total_count));
+                var items = data.products || data.items || [];
+                if (items.length === 0) { container.innerHTML = '<div class="empty-state"><p>\uc0c1\ud488 \uc5c6\uc74c</p></div>'; return; }
+                var html = '<div class="table-wrapper"><table><thead><tr><th>\ucf54\ub4dc</th><th>\uc0c1\ud488\uba85</th><th>\ud3c9\uade0\uac00</th><th>\ud310\ub9e4\uc218\ub7c9</th><th>\uc8fc\ubb38\uc218</th><th>\uace0\uac1d\uc218</th><th>\ucd1d \ub9e4\ucd9c</th></tr></thead><tbody>';
+                items.forEach(function (p) { html += '<tr style="cursor:pointer;" onclick="showPage(\'product-rec\'); setTimeout(function(){document.getElementById(\'productSearch\').value=\'' + p.StockCode + '\'; searchProducts();}, 300);"><td><span style="color:var(--primary);font-weight:600;">' + p.StockCode + '</span></td><td>' + escHtml(p.Description) + '</td><td>' + fmtPrice(p.AvgPrice) + '</td><td>' + fmtNum(p.TotalSold) + '</td><td>' + fmtNum(p.OrderCount) + '</td><td>' + fmtNum(p.UniqueCustomers) + '</td><td>' + fmtPrice(p.TotalRevenue) + '</td></tr>'; });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+                // Pagination
+                var totalPages = data.total_pages;
+                var pagEl = document.getElementById('productListPagination');
+                if (totalPages <= 1) { pagEl.innerHTML = ''; return; }
+                var ph = '';
+                if (page > 1) ph += '<button class="btn btn-secondary btn-sm" onclick="loadAllProducts(' + (page - 1) + ')">\u25c0 \uc774\uc804</button>';
+                ph += '<span style="padding:8px;font-size:13px;color:var(--text-secondary);">' + page + ' / ' + totalPages + '</span>';
+                if (page < totalPages) ph += '<button class="btn btn-secondary btn-sm" onclick="loadAllProducts(' + (page + 1) + ')">\ub2e4\uc74c \u25b6</button>';
+                pagEl.innerHTML = ph;
+            } catch (e) { container.innerHTML = '<div class="empty-state"><p>\ub85c\ub529 \uc2e4\ud328</p></div>'; }
+        }
+
+        /* ========== SEGMENTS ========== */
+        async function loadSegments() {
+            var container = document.getElementById('segmentGrid');
+            container.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>\ub85c\ub529 \uc911...</div>';
+            try {
+                var res = await fetch(API + '/api/segments');
+                var raw = await res.json();
+                var segments = [];
+                if (Array.isArray(raw)) { segments = raw; }
+                else { Object.entries(raw).forEach(function (e) { segments.push({ segment: e[0], count: e[1] }); }); }
+                var total = segments.reduce(function (s, seg) { return s + (seg.count || 0); }, 0);
+                var colors = ['#4F46E5', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
+                var html = '';
+                segments.forEach(function (seg, i) {
+                    var pct = total > 0 ? ((seg.count / total) * 100).toFixed(1) : 0;
+                    html += '<div class="segment-card" onclick="loadSegmentDetail(\'' + escHtml(seg.segment) + '\')"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="width:12px;height:12px;border-radius:3px;background:' + colors[i % colors.length] + ';"></div><div class="segment-name">' + escHtml(seg.segment) + '</div></div><div class="segment-count">' + fmtNum(seg.count) + '</div><div class="segment-label">' + pct + '% of total</div></div>';
+                });
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>\ub85c\ub529 \uc2e4\ud328</p></div>'; }
+        }
+
+        async function loadSegmentDetail(segment) {
+            var container = document.getElementById('segmentDetail');
+            container.style.display = 'block';
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>\ubd84\uc11d \uc911...</div>';
+            container.scrollIntoView({ behavior: 'smooth' });
+            try {
+                var res = await fetch(API + '/api/segment/' + encodeURIComponent(segment));
+                var data = await res.json();
+                var html = '<div class="card"><div class="card-title"><i class="fas fa-bullseye"></i> ' + segment + ' \uc138\uadf8\uba3c\ud2b8 \uc0c1\uc138 (' + fmtNum(data.customer_count || 0) + '\uba85)</div>';
+                if (data.strategy) html += '<div class="strategy-card"><div class="strategy-title"><i class="fas fa-chess"></i> ' + data.strategy.strategy + '</div><div class="strategy-desc">' + data.strategy.description + '</div><div class="discount-badge"><i class="fas fa-tag"></i> ' + data.strategy.discount + '</div></div>';
+                if (data.avg_rfm) html += '<div class="rfm-grid"><div class="rfm-item"><div class="rfm-value" style="color:#EF4444;">' + data.avg_rfm.Recency + '</div><div class="rfm-label">\ud3c9\uade0 Recency (\uc77c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#3B82F6;">' + data.avg_rfm.Frequency + '</div><div class="rfm-label">\ud3c9\uade0 Frequency (\ud68c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#10B981;">' + fmtPrice(data.avg_rfm.Monetary) + '</div><div class="rfm-label">\ud3c9\uade0 Monetary</div></div></div>';
+                if (data.top_products && data.top_products.length > 0) {
+                    html += '<div class="card-title" style="margin-top:16px;"><i class="fas fa-trophy"></i> \uc778\uae30 \uc0c1\ud488 TOP 10</div><div class="table-wrapper"><table><thead><tr><th>\ucf54\ub4dc</th><th>\uc0c1\ud488\uba85</th><th>\ud310\ub9e4\uc218\ub7c9</th><th>\uad6c\ub9e4 \uace0\uac1d\uc218</th><th>\ud3c9\uade0\uac00</th></tr></thead><tbody>';
+                    data.top_products.forEach(function (p) { html += '<tr><td><span style="color:var(--primary);font-weight:600;">' + p.StockCode + '</span></td><td>' + escHtml(p.Description) + '</td><td>' + fmtNum(p.TotalSold) + '</td><td>' + fmtNum(p.UniqueCustomers) + '</td><td>' + fmtPrice(p.AvgPrice) + '</td></tr>'; });
+                    html += '</tbody></table></div>';
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = '<div class="empty-state"><p>\ub85c\ub529 \uc2e4\ud328</p></div>'; }
+        }
+
+        /* ========== ARPU ANALYSIS ========== */
+        async function loadArpu() {
+            try {
+                var res = await fetch(API + '/api/arpu');
+                var a = await res.json();
+                if (!a.arpu) return;
+
+                var avgArpu = Math.round(a.arpu.reduce(function (s, v) { return s + v; }, 0) / a.arpu.length);
+                var avgAov = Math.round(a.aov.reduce(function (s, v) { return s + v; }, 0) / a.aov.length);
+                var totalRev = a.revenue.reduce(function (s, v) { return s + v; }, 0);
+
+                document.getElementById('arpu-metrics').innerHTML =
+                    metricCard('\u00a3' + fmtNum(avgArpu), '평균 ARPU', '#4F46E5') +
+                    metricCard('\u00a3' + fmtNum(avgAov), '평균 객단가(AOV)', '#0EA5E9') +
+                    metricCard('\u00a3' + fmtNum(Math.round(totalRev)), '총 매출', '#EF4444');
+
+                destroyChart('arpu-chart');
+                chartInstances['arpu-chart'] = new Chart(document.getElementById('arpu-chart'), {
+                    type: 'line', data: {
+                        labels: a.months.map(function (m) { return m.slice(2); }), datasets: [
+                            { label: 'ARPU (\u00a3)', data: a.arpu, borderColor: '#4F46E5', backgroundColor: '#4F46E540', tension: 0.3, fill: true },
+                            { label: 'AOV (\u00a3)', data: a.aov, borderColor: '#0EA5E9', backgroundColor: '#0EA5E940', tension: 0.3, fill: true }
+                        ]
+                    }, options: chartOpts('\u00a3')
+                });
+
+                destroyChart('revenue-chart');
+                chartInstances['revenue-chart'] = new Chart(document.getElementById('revenue-chart'), {
+                    type: 'bar', data: { labels: a.months.map(function (m) { return m.slice(2); }), datasets: [{ label: '매출 (\u00a3)', data: a.revenue, backgroundColor: '#10B98180', borderColor: '#10B981', borderWidth: 1 }] }, options: chartOpts('\u00a3')
+                });
+
+                destroyChart('customers-chart');
+                chartInstances['customers-chart'] = new Chart(document.getElementById('customers-chart'), {
+                    type: 'bar', data: {
+                        labels: a.months.map(function (m) { return m.slice(2); }), datasets: [
+                            { label: '고객 수', data: a.customers, backgroundColor: '#F59E0B80', borderColor: '#F59E0B', borderWidth: 1 },
+                            { label: '주문 수', data: a.orders, backgroundColor: '#4F46E540', borderColor: '#4F46E5', borderWidth: 1 }
+                        ]
+                    }, options: chartOpts('')
+                });
+            } catch (e) { console.error("ARPU load error:", e); }
+        }
+
+        /* ========== ARPPU ANALYSIS ========== */
+        async function loadArppu() {
+            try {
+                var res = await fetch(API + '/api/arpu');
+                var a = await res.json();
+                if (!a.arppu) return;
+
+                var avgArppu = Math.round(a.arppu.reduce(function (s, v) { return s + v; }, 0) / a.arppu.length);
+                var avgPayingRate = (a.paying_rate.reduce(function (s, v) { return s + v; }, 0) / a.paying_rate.length).toFixed(1);
+                var totalRev = a.revenue.reduce(function (s, v) { return s + v; }, 0);
+                var avgCust = Math.round(a.customers.reduce(function (s, v) { return s + v; }, 0) / a.customers.length);
+
+                document.getElementById('arppu-metrics').innerHTML =
+                    metricCard('\u00a3' + fmtNum(avgArppu), '평균 ARPPU', '#F59E0B') +
+                    metricCard(avgPayingRate + '%', '평균 결제율', '#10B981') +
+                    metricCard('\u00a3' + fmtNum(Math.round(totalRev)), '총 매출', '#EF4444') +
+                    metricCard(fmtNum(avgCust), '평균 결제 고객/월', '#4F46E5') +
+                    metricCard(fmtNum(a.total_customers), '전체 등록 고객', '#64748B');
+
+                destroyChart('arpu-arppu-chart');
+                chartInstances['arpu-arppu-chart'] = new Chart(document.getElementById('arpu-arppu-chart'), {
+                    type: 'line', data: {
+                        labels: a.months.map(function (m) { return m.slice(2); }), datasets: [
+                            { label: 'ARPPU (\u00a3)', data: a.arppu, borderColor: '#F59E0B', backgroundColor: '#F59E0B40', tension: 0.3, fill: true },
+                            { label: 'ARPU (\u00a3)', data: a.arpu, borderColor: '#4F46E5', backgroundColor: '#4F46E540', tension: 0.3, fill: true }
+                        ]
+                    }, options: chartOpts('\u00a3')
+                });
+
+                destroyChart('paying-rate-chart');
+                chartInstances['paying-rate-chart'] = new Chart(document.getElementById('paying-rate-chart'), {
+                    type: 'bar', data: {
+                        labels: a.months.map(function (m) { return m.slice(2); }), datasets: [
+                            { label: '결제율 (%)', data: a.paying_rate, backgroundColor: '#10B98180', borderColor: '#10B981', borderWidth: 1 }
+                        ]
+                    }, options: chartOpts('%')
+                });
+
+                document.querySelector('#arppu-table tbody').innerHTML = a.months.map(function (m, i) {
+                    return '<tr><td style="font-weight:600;">' + m + '</td><td>\u00a3' + a.arpu[i].toFixed(0) + '</td><td>\u00a3' + a.arppu[i].toFixed(0) + '</td><td>\u00a3' + a.aov[i].toFixed(0) + '</td><td>' + a.paying_rate[i] + '%</td><td>\u00a3' + fmtNum(Math.round(a.revenue[i])) + '</td><td>' + fmtNum(a.customers[i]) + '</td><td>' + fmtNum(a.orders[i]) + '</td></tr>';
+                }).join('');
+            } catch (e) { console.error("ARPPU load error:", e); }
+        }
+
+        /* ========== RETENTION ANALYSIS (2 TYPES) ========== */
+        function switchRetTab(type) {
+            document.querySelectorAll('.ret-tab').forEach(function (b) { b.classList.remove('active'); });
+            document.querySelectorAll('.ret-panel').forEach(function (p) { p.classList.remove('active'); });
+            if (type === 'revenue') {
+                document.querySelectorAll('.ret-tab')[1].classList.add('active');
+                document.getElementById('ret-panel-revenue').classList.add('active');
+            } else {
+                document.querySelectorAll('.ret-tab')[0].classList.add('active');
+                document.getElementById('ret-panel-customer').classList.add('active');
+            }
+        }
+
+        async function loadRetention() {
+            try {
+                var res = await fetch(API + '/api/retention');
+                var data = await res.json();
+                retentionData = data;
+
+                // Render both panels
+                renderRetentionPanel(data.customer, 'ret-cust', 'customer');
+                renderRetentionPanel(data.revenue, 'ret-rev', 'revenue');
+            } catch (e) { console.error("Retention load error:", e); }
+        }
+
+        function renderRetentionPanel(retData, prefix, type) {
+            if (!retData) return;
+            var cohorts = Object.keys(retData).sort();
+            if (cohorts.length === 0) return;
+
+            var isRevenue = (type === 'revenue');
+            var sizeKey = isRevenue ? 'cohort_revenue' : 'cohort_size';
+            var sizes = cohorts.map(function (c) { return retData[c][sizeKey]; });
+            var totalBase = sizes.reduce(function (s, v) { return s + v; }, 0);
+            var avgBase = isRevenue ? Math.round(totalBase / sizes.length) : Math.round(totalBase / sizes.length);
+            var m1rates = cohorts.map(function (c) { return retData[c].retention[1] || 0; }).filter(function (v) { return v > 0; });
+            var avgM1 = m1rates.length > 0 ? (m1rates.reduce(function (s, v) { return s + v; }, 0) / m1rates.length).toFixed(1) : '-';
+            var bestCohort = '-', bestRate = 0;
+            cohorts.forEach(function (c) { if ((retData[c].retention[1] || 0) > bestRate) { bestRate = retData[c].retention[1]; bestCohort = c; } });
+            var allRates = [];
+            cohorts.forEach(function (c) { retData[c].retention.slice(1).filter(function (v) { return v > 0; }).forEach(function (v) { allRates.push(v); }); });
+            var overallAvg = allRates.length > 0 ? (allRates.reduce(function (s, v) { return s + v; }, 0) / allRates.length).toFixed(1) : '-';
+
+            // Metrics
+            var metricsEl = document.getElementById(prefix + '-metrics');
+            if (isRevenue) {
+                metricsEl.innerHTML =
+                    metricCard('\u00a3' + fmtNum(Math.round(totalBase)), '\ucf54\ud638\ud2b8 \ucd1d \ub9e4\ucd9c', '#4F46E5') +
+                    metricCard('\u00a3' + fmtNum(avgBase), '\ud3c9\uade0 \ucf54\ud638\ud2b8 \ub9e4\ucd9c', '#0EA5E9') +
+                    metricCard(avgM1 + '%', '\ud3c9\uade0 M+1 \ub9e4\ucd9c \ub9ac\ud150\uc158', '#10B981') +
+                    metricCard(bestRate + '% (' + bestCohort.slice(2) + ')', '\ucd5c\uace0 M+1', '#F59E0B') +
+                    metricCard(overallAvg + '%', '\uc804\uccb4 \ud3c9\uade0 \ub9ac\ud150\uc158', '#EF4444');
+            } else {
+                metricsEl.innerHTML =
+                    metricCard(fmtNum(Math.round(totalBase)), '\uc2e0\uaddc \uace0\uac1d \ud569\uacc4', '#4F46E5') +
+                    metricCard(fmtNum(avgBase), '\ud3c9\uade0 \ucf54\ud638\ud2b8 \ud06c\uae30', '#0EA5E9') +
+                    metricCard(avgM1 + '%', '\ud3c9\uade0 M+1 \ub9ac\ud150\uc158', '#10B981') +
+                    metricCard(bestRate + '% (' + bestCohort.slice(2) + ')', '\ucd5c\uace0 M+1', '#F59E0B') +
+                    metricCard(overallAvg + '%', '\uc804\uccb4 \ud3c9\uade0 \ub9ac\ud150\uc158', '#EF4444');
+            }
+
+            // Heatmap
+            var maxMonth = Math.max.apply(null, cohorts.map(function (c) { return retData[c].retention.length; }));
+            var hHtml = '<table class="heatmap"><thead><tr><th>\ucf54\ud638\ud2b8</th><th>' + (isRevenue ? '\uae30\uc900 \ub9e4\ucd9c' : '\ud06c\uae30') + '</th>';
+            for (var i = 0; i < maxMonth; i++) hHtml += '<th>M+' + i + '</th>';
+            hHtml += '</tr></thead><tbody>';
+            cohorts.forEach(function (c) {
+                var sizeDisplay = isRevenue ? '\u00a3' + fmtNum(Math.round(retData[c][sizeKey])) : fmtNum(retData[c][sizeKey]);
+                hHtml += '<tr><td class="cohort-label">' + c + '</td><td class="size-cell">' + sizeDisplay + '</td>';
+                retData[c].retention.forEach(function (val, idx) {
+                    var bg = idx === 0 ? '#4F46E5' : getHeatColor(val);
+                    var fg = idx === 0 || val > 25 ? 'white' : val > 10 ? '#1E293B' : '#64748B';
+                    hHtml += '<td style="background:' + bg + ';color:' + fg + ';font-weight:' + (idx === 0 ? '700' : '500') + ';">' + (val > 0 ? val.toFixed(1) + '%' : (idx === 0 ? '100%' : '-')) + '</td>';
+                });
+                for (var j = retData[c].retention.length; j < maxMonth; j++) hHtml += '<td style="background:#F8FAFC;color:#CBD5E1;">-</td>';
+                hHtml += '</tr>';
+            });
+            hHtml += '</tbody></table>';
+            document.getElementById(prefix + '-heatmap').innerHTML = hHtml;
+
+            // Average retention curve
+            var avgRet = [];
+            for (var k = 0; k < maxMonth; k++) {
+                var vals = cohorts.map(function (c) { return (retData[c].retention[k] !== undefined && retData[c].retention[k] > 0) ? retData[c].retention[k] : null; }).filter(function (v) { return v !== null; });
+                avgRet.push(vals.length > 0 ? vals.reduce(function (s, v) { return s + v; }, 0) / vals.length : 0);
+            }
+            var curveId = prefix + '-curve';
+            destroyChart(curveId);
+            chartInstances[curveId] = new Chart(document.getElementById(curveId), {
+                type: 'line',
+                data: { labels: Array.from({ length: maxMonth }, function (_, i) { return 'M+' + i; }), datasets: [{ label: isRevenue ? '\ub9e4\ucd9c \ub9ac\ud150\uc158 (%)' : '\uace0\uac1d \ub9ac\ud150\uc158 (%)', data: avgRet, borderColor: isRevenue ? '#F59E0B' : '#4F46E5', backgroundColor: isRevenue ? '#F59E0B30' : '#4F46E540', tension: 0.3, fill: true, pointBackgroundColor: isRevenue ? '#F59E0B' : '#4F46E5', pointRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 } }, grid: { display: false } }, y: { ticks: { callback: function (v) { return v + '%'; }, font: { size: 11 } }, grid: { color: '#E2E8F020' }, max: isRevenue ? undefined : 105 } } }
+            });
+
+            // M+1 trend
+            var m1data = cohorts.map(function (c) { return retData[c].retention[1] || 0; });
+            var m1Id = prefix + '-m1';
+            destroyChart(m1Id);
+            chartInstances[m1Id] = new Chart(document.getElementById(m1Id), {
+                type: 'line',
+                data: { labels: cohorts.map(function (c) { return c.slice(2); }), datasets: [{ label: 'M+1 (' + (isRevenue ? '\ub9e4\ucd9c' : '\uace0\uac1d') + ' %)', data: m1data, borderColor: isRevenue ? '#EF4444' : '#10B981', backgroundColor: isRevenue ? '#EF444430' : '#10B98140', tension: 0.3, fill: true, pointBackgroundColor: isRevenue ? '#EF4444' : '#10B981', pointRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 }, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { callback: function (v) { return v + '%'; }, font: { size: 11 } }, grid: { color: '#E2E8F020' } } } }
+            });
+        }
+    </script>
+</body>
+
+</html>
