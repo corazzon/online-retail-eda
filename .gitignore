@@ -48,6 +48,9 @@ ENV/
 env/
 .virtualenv/
 
+# Node
+node_modules/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb
