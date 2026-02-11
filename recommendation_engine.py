@@ -20,6 +20,9 @@ from datetime import datetime
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'online_retail_combined.csv')
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'model_cache')
 
+# 전처리 전 원시 데이터 통계를 저장할 전역 변수 (캐시용)
+RAW_STATS = {}
+
 
 def ensure_cache_dir():
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -27,11 +30,34 @@ def ensure_cache_dir():
 
 def load_and_preprocess():
     """데이터 로드 및 전처리"""
-    print("[1/6] 데이터 로딩 중...")
-    df = pd.read_csv(DATA_PATH, dtype={'Customer ID': str, 'StockCode': str})
+    print("[1/6] 데이터 로딩 및 EDA 분석 중...")
+    df_raw = pd.read_csv(DATA_PATH, dtype={'Customer ID': str, 'StockCode': str})
+    
+    # [EDA] 원시 데이터 통계 추출
+    global RAW_STATS
+    RAW_STATS = {
+        'raw_row_count': len(df_raw),
+        'missing_customers': int(df_raw['Customer ID'].isnull().sum()),
+        'missing_descriptions': int(df_raw['Description'].isnull().sum()),
+        'total_cancelled': int(df_raw['Invoice'].astype(str).str.startswith('C', na=False).sum()),
+        'negative_quantity': int((df_raw['Quantity'] < 0).sum()),
+        'zero_price': int((df_raw['Price'] == 0).sum()),
+        'stats_quantity': {
+            'mean': round(float(df_raw['Quantity'].mean()), 2),
+            'median': round(float(df_raw['Quantity'].median()), 2),
+            'min': int(df_raw['Quantity'].min()),
+            'max': int(df_raw['Quantity'].max())
+        },
+        'stats_price': {
+            'mean': round(float(df_raw['Price'].mean()), 2),
+            'median': round(float(df_raw['Price'].median()), 2),
+            'min': round(float(df_raw['Price'].min()), 2),
+            'max': round(float(df_raw['Price'].max()), 2)
+        }
+    }
 
     # 기본 전처리
-    df = df.dropna(subset=['Customer ID', 'Description'])
+    df = df_raw.dropna(subset=['Customer ID', 'Description'])
     df = df[df['Quantity'] > 0]
     df = df[df['Price'] > 0]
     df['Customer ID'] = df['Customer ID'].str.replace('.0', '', regex=False)
@@ -351,6 +377,8 @@ class RecommendationSystem:
             self.user_item_pivot = cached['user_item_pivot']
             self.rules = cached['rules']
             self.content_sim_df = cached.get('content_sim_df')
+            global RAW_STATS
+            RAW_STATS = cached.get('raw_stats', {})
             self.is_ready = True
             print("모델 로딩 완료!")
             return
@@ -375,6 +403,7 @@ class RecommendationSystem:
                 'user_item_pivot': self.user_item_pivot,
                 'rules': self.rules,
                 'content_sim_df': self.content_sim_df,
+                'raw_stats': RAW_STATS
             }, f)
 
         self.is_ready = True
@@ -403,6 +432,7 @@ class RecommendationSystem:
             'rfm_segments': self.rfm['Segment'].value_counts().to_dict() if self.rfm is not None else {},
             'top_countries': top_countries,
             'monthly_sales': monthly_sales,
+            'eda': RAW_STATS,
         }
 
     def get_all_products(self, page=1, size=20, query=''):
