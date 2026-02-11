@@ -555,6 +555,11 @@ class RecommendationSystem:
                 'Recency': round(float(segment_customers['Recency'].mean()), 1),
                 'Frequency': round(float(segment_customers['Frequency'].mean()), 1),
                 'Monetary': round(float(segment_customers['Monetary'].mean()), 2),
+            },
+            'global_avg_rfm': {
+                'Recency': round(float(self.rfm['Recency'].mean()), 1),
+                'Frequency': round(float(self.rfm['Frequency'].mean()), 1),
+                'Monetary': round(float(self.rfm['Monetary'].mean()), 2),
             }
         }
 

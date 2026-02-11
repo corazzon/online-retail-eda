@@ -1569,14 +1569,112 @@
                 var html = '<div class="card"><div class="card-title"><i class="fas fa-bullseye"></i> ' + segment + ' \uc138\uadf8\uba3c\ud2b8 \uc0c1\uc138 (' + fmtNum(data.customer_count || 0) + '\uba85)</div>';
                 if (data.strategy) html += '<div class="strategy-card"><div class="strategy-title"><i class="fas fa-chess"></i> ' + data.strategy.strategy + '</div><div class="strategy-desc">' + data.strategy.description + '</div><div class="discount-badge"><i class="fas fa-tag"></i> ' + data.strategy.discount + '</div></div>';
                 if (data.avg_rfm) html += '<div class="rfm-grid"><div class="rfm-item"><div class="rfm-value" style="color:#EF4444;">' + data.avg_rfm.Recency + '</div><div class="rfm-label">\ud3c9\uade0 Recency (\uc77c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#3B82F6;">' + data.avg_rfm.Frequency + '</div><div class="rfm-label">\ud3c9\uade0 Frequency (\ud68c)</div></div><div class="rfm-item"><div class="rfm-value" style="color:#10B981;">' + fmtPrice(data.avg_rfm.Monetary) + '</div><div class="rfm-label">\ud3c9\uade0 Monetary</div></div></div>';
+                if (data.avg_rfm && data.global_avg_rfm) {
+                    html += '<div class="grid-2" style="margin-top:20px;">' +
+                        '<div class="card"><div class="card-title"><i class="fas fa-chart-radar"></i> RFM \ud504\ub85c\ud544 \ube44\uad50</div>' +
+                        '<div style="height:300px;"><canvas id="segmentRadarChart"></canvas></div></div>' +
+                        '<div class="card"><div class="card-title"><i class="fas fa-chart-bar"></i> \uc138\uadf8\uba3c\ud2b8 \uc778\uae30 \uc0c1\ud488</div>' +
+                        '<div style="height:300px;"><canvas id="segmentProductChart"></canvas></div></div>' +
+                        '</div>';
+                }
+
                 if (data.top_products && data.top_products.length > 0) {
-                    html += '<div class="card-title" style="margin-top:16px;"><i class="fas fa-trophy"></i> \uc778\uae30 \uc0c1\ud488 TOP 10</div><div class="table-wrapper"><table><thead><tr><th>\ucf54\ub4dc</th><th>\uc0c1\ud488\uba85</th><th>\ud310\ub9e4\uc218\ub7c9</th><th>\uad6c\ub9e4 \uace0\uac1d\uc218</th><th>\ud3c9\uade0\uac00</th></tr></thead><tbody>';
+                    html += '<div class="card-title" style="margin-top:16px;"><i class="fas fa-trophy"></i> \uc778\uae30 \uc0c1\ud488 TOP 10 \uc0c1\uc138</div><div class="table-wrapper"><table><thead><tr><th>\ucf54\ub4dc</th><th>\uc0c1\ud488\uba85</th><th>\ud310\ub9e4\uc218\ub7c9</th><th>\uad6c\ub9e4 \uace0\uac1d\uc218</th><th>\ud3c9\uade0\uac00</th></tr></thead><tbody>';
                     data.top_products.forEach(function (p) { html += '<tr><td><span style="color:var(--primary);font-weight:600;">' + p.StockCode + '</span></td><td>' + escHtml(p.Description) + '</td><td>' + fmtNum(p.TotalSold) + '</td><td>' + fmtNum(p.UniqueCustomers) + '</td><td>' + fmtPrice(p.AvgPrice) + '</td></tr>'; });
                     html += '</tbody></table></div>';
                 }
                 html += '</div>';
                 container.innerHTML = html;
+
+                // Render Charts
+                if (data.avg_rfm && data.global_avg_rfm) {
+                    renderSegmentCharts(data);
+                }
             } catch (e) { container.innerHTML = '<div class="empty-state"><p>\ub85c\ub529 \uc2e4\ud328</p></div>'; }
+        }
+
+        function renderSegmentCharts(data) {
+            const seg = data.avg_rfm;
+            const glob = data.global_avg_rfm;
+
+            // 1. Radar Chart (RFM Profile Comparison)
+            // Normalize values: Based on global mean = 1.0
+            // Recency: Lower is better, so use glob/seg
+            const rScore = seg.Recency > 0 ? (glob.Recency / seg.Recency) : 1;
+            const fScore = glob.Frequency > 0 ? (seg.Frequency / glob.Frequency) : 1;
+            const mScore = glob.Monetary > 0 ? (seg.Monetary / glob.Monetary) : 1;
+
+            destroyChart('segmentRadarChart');
+            chartInstances['segmentRadarChart'] = new Chart(document.getElementById('segmentRadarChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Recency (\ub0ae\uc744\uc218\ub85d \uc6b0\uc218)', 'Frequency (\ub192\uc744\uc218\ub85d \uc6b0\uc218)', 'Monetary (\ub192\uc744\uc218\ub85d \uc6b0\uc218)'],
+                    datasets: [
+                        {
+                            label: '\ud644\uc7ac \uc138\uadf8\uba3c\ud2b8 (\uc0c1\ub300\uc9c0\uc218)',
+                            data: [rScore, fScore, mScore],
+                            backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                            borderColor: 'rgba(79, 70, 229, 1)',
+                            pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '\uc804\uccb4 \ud3c9\uade0 (\uae30\uc900\uc120)',
+                            data: [1, 1, 1],
+                            backgroundColor: 'rgba(203, 213, 225, 0.1)',
+                            borderColor: 'rgba(203, 213, 225, 0.8)',
+                            borderDash: [5, 5],
+                            borderWidth: 1,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            ticks: { display: false },
+                            suggestedMax: Math.max(rScore, fScore, mScore, 1.5),
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            angleLines: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                }
+            });
+
+            // 2. Horizontal Bar Chart (Top Products by Sales)
+            if (data.top_products && data.top_products.length > 0) {
+                const top5 = data.top_products.slice(0, 5);
+                destroyChart('segmentProductChart');
+                chartInstances['segmentProductChart'] = new Chart(document.getElementById('segmentProductChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: top5.map(p => p.Description.length > 18 ? p.Description.slice(0, 15) + '...' : p.Description),
+                        datasets: [{
+                            label: '\ud310\ub9e4 \uc218\ub7c9',
+                            data: top5.map(p => p.TotalSold),
+                            backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+                            y: { grid: { display: false }, ticks: { font: { family: 'Noto Sans KR', size: 11 } } }
+                        }
+                    }
+                });
+            }
         }
 
         /* ========== ARPU ANALYSIS ========== */
