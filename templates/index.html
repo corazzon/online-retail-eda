@@ -1336,9 +1336,28 @@
         function renderCountryChart(data) {
             destroyChart('countryChart');
             chartInstances['countryChart'] = new Chart(document.getElementById('countryChart'), {
-                type: 'doughnut',
-                data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#818CF8', '#34D399', '#FBBF24', '#F87171', '#38BDF8'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: '\ub9e4\ucd9c (\u00a3)',
+                        data: Object.values(data),
+                        backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#818CF8', '#34D399', '#FBBF24', '#F87171', '#38BDF8'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
+                        y: { grid: { display: false }, ticks: { font: { family: 'Noto Sans KR', size: 11 } } }
+                    }
+                }
             });
         }
 
