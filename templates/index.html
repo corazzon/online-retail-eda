@@ -1510,18 +1510,45 @@
             if (!items || items.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>\ucd94\ucc9c \uacb0\uacfc \uc5c6\uc74c</p></div>'; return; }
             var html = '';
             items.forEach(function (item) {
-                // Similarity 점수 추출 (대소문자 및 다양한 키 대응)
-                var score = item.Similarity || item.similarity || item.score || item.confidence || 0;
-                var scoreClass = score >= 0.5 ? 'high' : score >= 0.3 ? 'medium' : 'low';
-                var scorePercent = (score * 100).toFixed(1) + '%';
+                // 연관 규칙 (AR) 체크: Lift 속성 존재 여부
+                if (item.Lift !== undefined) {
+                    var lift = item.Lift || 0;
+                    var conf = (item.Confidence || 0) * 100;
+                    var supp = (item.Support || 0) * 100;
+                    var scoreClass = lift >= 3 ? 'high' : lift >= 1.5 ? 'medium' : 'low';
 
-                html += '<div class="product-card" onclick="getProductRec(\'' + item.StockCode + '\')">' +
-                    '<div class="product-code">' + item.StockCode + '</div>' +
-                    '<div class="product-name">' + escHtml(item.Description) + '</div>' +
-                    '<div class="product-meta">' +
-                    '<span class="score-badge ' + scoreClass + '">' + scorePercent + '</span>' +
-                    '<span style="font-size:11px; color:var(--text-secondary); margin-left:4px;">\uc720\uc0ac\ub3c4</span>' +
-                    '</div></div>';
+                    html += '<div class="product-card" onclick="getProductRec(\'' + item.StockCode + '\')">' +
+                        '<div class="product-code">' + item.StockCode + '</div>' +
+                        '<div class="product-name">' + escHtml(item.Description) + '</div>' +
+                        '<div class="product-meta" style="flex-direction:column; align-items:flex-start;">' +
+                        '  <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-bottom:8px;">' +
+                        '    <span class="score-badge ' + scoreClass + '" title="\ud5a5\uc0c1\ub3c4 (Lift): \ub4f1\uc7a5 \ud6e5\ub960 \uc99d\uac00\uc728">Lift ' + lift.toFixed(2) + '</span>' +
+                        '    <span class="product-sold">' + fmtPrice(item.AvgPrice || 0) + '</span>' +
+                        '  </div>' +
+                        '  <div style="font-size:11px; color:#555; width:100%; display:flex; justify-content:space-between; background:#f1f5f9; padding:6px 8px; border-radius:6px;">' +
+                        '    <div style="text-align:center;" title="\uc2e0\ub8b0\ub3c4 (Confidence): A \uad6c\ub9e4 \uc2dc B \uad6c\ub9e4 \ud6e5\ub960"><div style="font-weight:700; color:#334155;">' + conf.toFixed(1) + '%</div><div style="font-size:10px; color:#94a3b8;">Conf</div></div>' +
+                        '    <div style="width:1px; background:#cbd5e1; margin:0 4px;"></div>' +
+                        '    <div style="text-align:center;" title="\uc9c0\uc9c0\ub3c4 (Support): \ub3d9\uc2dc \uad6c\ub9e4 \ube44\uc728"><div style="font-weight:700; color:#334155;">' + (supp < 1 ? supp.toFixed(3) : supp.toFixed(2)) + '%</div><div style="font-size:10px; color:#94a3b8;">Supp</div></div>' +
+                        '  </div>' +
+                        '</div></div>';
+                }
+                // 그 외 (CF, CB 등)
+                else {
+                    var rawScore = item.Score || item.score || item.final_score || item.similarity || item.Similarity || item.confidence || 0;
+                    var score = rawScore > 1 ? rawScore : rawScore * 100;
+                    var scoreClass = score >= 50 ? 'high' : score >= 30 ? 'medium' : 'low';
+                    var scorePercent = score.toFixed(1) + '%';
+
+                    html += '<div class="product-card" onclick="getProductRec(\'' + item.StockCode + '\')">' +
+                        '<div class="product-code">' + item.StockCode + '</div>' +
+                        '<div class="product-name">' + escHtml(item.Description) + '</div>' +
+                        '<div class="product-meta">' +
+                        '<span class="score-badge ' + scoreClass + '">\uc720\uc0ac\ub3c4 ' + scorePercent + '</span>' +
+                        '<span class="product-sold">' + fmtPrice(item.AvgPrice || 0) + '</span>' +
+                        '</div>' +
+                        (item.Reason ? '<div style="font-size:11px; color:var(--primary); margin-top:4px; font-weight:600;">\ud83d\udca1 ' + item.Reason + '</div>' : '') +
+                        '</div>';
+                }
             });
             container.innerHTML = html;
         }

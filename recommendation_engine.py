@@ -281,6 +281,7 @@ def get_association_recommendations(stock_code, rules_df, product_info, top_n=10
                         'Price': float(info.iloc[0]['AvgPrice']),
                         'Confidence': round(float(row['confidence']), 4),
                         'Lift': round(float(row['lift']), 2),
+                        'Support': round(float(row['support']), 4),
                         'TotalSold': int(info.iloc[0]['TotalSold']),
                         'Reason': f'동시 구매 확률: {(float(row["confidence"])*100):.1f}%'
                     })
